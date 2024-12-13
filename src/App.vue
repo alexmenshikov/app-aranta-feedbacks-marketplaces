@@ -32,7 +32,8 @@ dayjs.extend(utc);
 import { useCompanyStore } from "./stores/companyStore.js";
 import CompanySelector from "./components/CompanySelector.vue";
 import CompanyPanel from "./components/CompanyPanel.vue";
-import {computed, onMounted, onUnmounted, ref, watch} from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { getFeedbacksWb } from "./composible/getFeedbacksWb.js";
 
 const store = useCompanyStore();
 
@@ -43,45 +44,39 @@ onMounted(() => {
   feedbacksList.value = [];
   questionsList.value = [];
 
-  startFeedbackInterval();
-  startCountdown();
+  handleStart();
 });
+
+function handleStart() {
+  feedbacksGet();
+  // questionsGet();
+
+  timerId = setInterval(() => {
+    feedbacksGet();
+    // questionsGet();
+  }, 600000); // 600000 миллисекунд = 10 минут
+}
+
+function handleStop() {
+  clearInterval(timerId); // Остановить таймер
+}
+
+function resetTimer() {
+  clearInterval(timerId); // Останавливаем текущий таймер
+  timerId = setInterval(() => {
+    feedbacksGet();
+    // questionsGet();
+  }, 600000); // 600000 миллисекунд = 10 минут
+}
 
 onUnmounted(() => {
-  // clearInterval(timerId); // Остановить таймер
-  clearInterval(feedbackInterval); // Очищаем интервалы при уничтожении компонента
-  clearInterval(countdownInterval);
-});
-
-function startCountdown() {
-  countdownInterval = setInterval(() => {
-    remainingTime.value -= 1000;
-    if (remainingTime.value <= 0) {
-      clearInterval(countdownInterval); // Останавливаем таймер, если время истекло
-    }
-  }, 1000);
-}
-
-function startFeedbackInterval() {
-  feedbackInterval = setInterval(() => {
-    feedbacksGet();
-    startCountdown();
-  }, intervalTime);
-}
-
-const formattedTime = computed(() => {
-  const minutes = Math.floor(remainingTime.value / 60000);
-  const seconds = Math.floor((remainingTime.value % 60000) / 1000);
-  return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+  handleStop();
 });
 
 let timerId = null;
-let countdownInterval = null;
-const intervalTime = 600000; // 10 минут в миллисекундах
-const remainingTime = ref(intervalTime); // Оставшееся время для обратного отсчёта
-let feedbackInterval = null;
 
 const loading = ref(false);
+// const feedbacksList = ref({});
 const feedbacksList = ref([]);
 const questionsList = ref([]);
 
@@ -90,7 +85,7 @@ const columns = ref([
     title: 'Дата / компания',
     dataIndex: 'createdDate',
     key: 'createdDate',
-    width: '12%',
+    width: '14%',
   },
   {
     title: 'Имя',
@@ -114,7 +109,7 @@ const columns = ref([
     title: 'Оценка',
     dataIndex: 'productValuation',
     key: 'productValuation',
-    width: '9%'
+    width: '8%'
   },
   {
     title: 'Ответ',
@@ -126,7 +121,7 @@ const columns = ref([
     title: 'Статус',
     key: 'status',
     dataIndex: 'status',
-    width: '8%',
+    width: '7%',
   },
   {
     title: 'Действие',
@@ -160,22 +155,22 @@ watch([feedbacksList, questionsList], ([newFeedbacks, newQuestions]) => {
           answer: "Ответ еще не сгенерирован"
         });
 
-        const message = type === 'feedback'
-          ? `Новый отзыв от *${newItem.userName ? newItem.userName : 'Нет имени'}*`
-          : 'Новый вопрос';
-
-        const productValuation = type === "feedback"
-          ? `Оценка *${getScoreWithSymbol(newItem.productValuation)}*\n`
-          : '';
-
-        sendMessageToAllUsers(
-          `*${transformedCompanySelected.value.name}*\n` +
-          `${message}\n` +
-          `SKU *${newItem.comment.supplierArticle}*\n` +
-          productValuation +
-          `Дата *${dayjs(newItem.createdDate).format('DD.MM.YYYY HH:mm')}*`,
-          newItem.id
-        );
+        // const message = type === 'feedback'
+        //   ? `Новый отзыв от *${newItem.userName ? newItem.userName : 'Нет имени'}*`
+        //   : 'Новый вопрос';
+        //
+        // const productValuation = type === "feedback"
+        //   ? `Оценка *${getScoreWithSymbol(newItem.productValuation)}*\n`
+        //   : '';
+        //
+        // sendMessageToAllUsers(
+        //   `*company*\n` +
+        //   `${message}\n` +
+        //   `SKU *${newItem.comment.supplierArticle}*\n` +
+        //   productValuation +
+        //   `Дата *${dayjs(newItem.createdDate).format('DD.MM.YYYY HH:mm')}*`,
+        //   newItem.id
+        // );
       }
     }
   };
@@ -186,49 +181,120 @@ watch([feedbacksList, questionsList], ([newFeedbacks, newQuestions]) => {
   feedbacksAndQuestions.value = updateData.value;
 });
 
-// Загрузка отзывов
-function feedbacksGet() {
-  loading.value = true;
-  message.loading('Загрузка отзывов', 0.5);
-
-  // axios
-  //   .get("https://feedbacks-api.wildberries.ru/api/v1/feedbacks", {
-  //     params: {
-  //       isAnswered: false,
-  //       take: 5000,
-  //       skip: 0,
-  //       order: "dateAsc",
-  //     },
-  //     headers: {
-  //       "Authorization": `${transformedCompanySelected.value.apiToken}`
-  //     }
-  //   })
-  //   .then(response => {
-  //     feedbacksList.value = response.data.data.feedbacks.map((feedback) => ({
-  //       id: feedback.id,
-  //       createdDate: feedback.createdDate,
-  //       userName: feedback.userName,
-  //       comment: {
-  //         supplierArticle: feedback.productDetails.supplierArticle,
-  //         pros: feedback.pros,
-  //         cons: feedback.cons,
-  //         text: feedback.text,
-  //       },
-  //       productName: feedback.productDetails.productName,
-  //       productValuation: feedback.productValuation,
-  //       photoLinks: feedback.photoLinks,
-  //       type: "feedback"
-  //     }));
-  //
-  //     loading.value = false;
-  //   })
-  //   .catch(error => {
-  //     console.log(error);
-  //     message.error('Ошибка при загрузке отзывов!');
-  //     loading.value = false;
-  //   });
-  remainingTime.value = intervalTime; // Сбрасываем обратный отсчёт
+function getScoreWithSymbol(value) {
+  if (value === 5) return `${value} 💚`;
+  else if (value === 4) return `${value} 💛`;
+  else return `${value} 💔`;
 }
+
+const telegramChatIds = [
+  // {
+  //   name: "Александр",
+  //   id: 514186798,
+  // },
+  // {
+  //   name: "Артём",
+  //   id: 428444661,
+  // }
+];
+
+const messagesUnansweredFeedback = ref([]);
+
+// Функция для отправки сообщения всем пользователям
+async function sendMessageToAllUsers(message, feedbackId) {
+  if (telegramChatIds.length === 0) {
+    console.log('Нет новых пользователей.');
+    return;
+  }
+
+  for (const chatId of telegramChatIds) {
+    try {
+      const response = await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, {
+        chat_id: chatId.id,
+        text: message,
+        parse_mode: 'Markdown'
+      });
+
+      messagesUnansweredFeedback.value.push({
+        messageId: response.data.result.message_id,
+        feedbackId: feedbackId,
+        company: "company",
+      });
+    } catch (error) {
+      console.error(`Ошибка при отправке сообщения пользователю с chat_id: ${chatId.id}`, error);
+    }
+  }
+}
+
+
+// Загрузка отзывов
+async function feedbacksGet() {
+  loading.value = true;
+  const loadingFeedbacks = message.loading('Загрузка отзывов', 0);
+
+  try {
+    const allFeedbacks = [];
+
+    for (const company of store.trackingCompanies) {
+      if (Object.keys(company.marketplaces).length > 0) {
+        for (const marketplace of Object.keys(company.marketplaces)) {
+          if (marketplace === 'wb') {
+            // const key = `${company.name.replace(/ /g, "_")}_${marketplace}`;
+            // const feedbacks = await getFeedbacksWb({
+            //   apiToken: company.marketplaces[marketplace].apiToken
+            // });
+            // feedbacksList.value = { ...feedbacksList.value, [key]: feedbacks };
+
+            const feedbacks = await getFeedbacksWb({
+              apiToken: company.marketplaces[marketplace].apiToken,
+              companyName: company.name,
+              marketplace: marketplace,
+            });
+            allFeedbacks.push(...feedbacks);
+
+            // feedbacksList.value[`${company.name.replace(/ /g, "_")}_${marketplace}`] = await getFeedbacksWb({
+            //   apiToken: company.marketplaces[marketplace].apiToken
+            // });
+          } else if (marketplace === 'ozon') {
+
+          }
+        }
+      }
+    }
+
+    feedbacksList.value = allFeedbacks;
+
+    loadingFeedbacks();
+    loading.value = false;
+  } catch (error) {
+    loadingFeedbacks();
+    loading.value = false;
+  }
+}
+
+function isValidArray(arr) {
+  return arr !== null && Array.isArray(arr) && arr.length > 0;
+}
+
+function getColorProductValuation(record) {
+  if (record.productValuation === null) {
+    return "default";
+  } else if (record.productValuation === 5) {
+    return "#87d068";
+  } else if (record.productValuation === 4) {
+    return "gold";
+  } else if (record.productValuation <= 3) {
+    return "red";
+  }
+}
+
+// Проверяем, редактируется ли строка
+const isEditing = (id) => {
+  return editingRow.value.id === id;
+};
+
+// Храним информацию о текущей редактируемой строке
+const editingRow = ref({id: null, answer: ''});
 </script>
 
 <template>
@@ -245,10 +311,6 @@ function feedbacksGet() {
         <span style="margin: 0 5px;">и вопросов</span>
         <a-badge :count="0" show-zero/>
       </div>
-
-      <div style="display: flex; align-items: center;">
-        <ClockCircleOutlined style="margin-right: 5px"/> <span>обновление данных через {{ formattedTime }}</span>
-      </div>
     </div>
 
     <a-table
@@ -259,9 +321,17 @@ function feedbacksGet() {
     >
       <template #bodyCell="{ column, record, index }">
         <template v-if="column.key === 'createdDate'">
-          <span v-if="record.createdDate">
-            {{ dayjs(record.createdDate).format('DD.MM.YYYY HH:mm') }}
+<!--          <span v-if="record.createdDate">-->
+<!--            {{ dayjs(record.createdDate).format('DD.MM.YYYY HH:mm') }}-->
+<!--          </span>-->
+          <span v-if="record.createdDate" style="display: block; font-weight: bold;">
+            {{ dayjs(record.createdDate).format('DD.MM.YYYY') }}
           </span>
+          <span v-if="record.createdDate" style="display: block;">
+            {{ dayjs(record.createdDate).format('HH:mm') }}
+          </span>
+          <a-tag :bordered="false" color="volcano" style="margin: 5px 0;">{{ record.companyName }}</a-tag>
+          <a-tag :bordered="false" color="purple">{{ record.marketplace }}</a-tag>
         </template>
 
         <template v-if="column.key === 'userName'">
