@@ -31,51 +31,55 @@ function updatePrompt(companyId, marketplaceKey, type, value) {
 </script>
 
 <template>
-  <h2 v-if="trackingCompanies.length > 0">Prompts</h2>
+<!--  <h3 v-if="trackingCompanies.length > 0">Prompts</h3>-->
 
-  <a-collapse collapsible="header" v-for="company in trackingCompanies" :key="company.id">
-    <a-collapse-panel :header="company.name">
-      <div v-for="(marketplace, key) in company.marketplaces" :key="key">
-        <h3>{{ convertNameMarketplace(key) }}</h3>
-        <a-row :gutter="24">
-          <a-col :span="24">
-            <a-form-item
-              :label="'Prompt для отзыва (' + convertNameMarketplace(key).toLowerCase() + ')'"
-              :name="'prompt-' + key"
-            >
-              <a-textarea
-                v-model:value="marketplace.prompt"
-                auto-size
-                @change="updatePrompt({
+  <a-collapse collapsible="header">
+    <a-collapse-panel header="Prompts и ключ gpt">
+      <a-collapse collapsible="header" v-for="company in trackingCompanies" :key="company.id">
+        <a-collapse-panel :header="company.name" class="collapse__panel">
+          <div v-for="(marketplace, key) in company.marketplaces" :key="key">
+            <h3>{{ convertNameMarketplace(key) }}</h3>
+            <a-row :gutter="24">
+              <a-col :span="24">
+                <a-form-item
+                  :label="'Prompt для отзыва (' + convertNameMarketplace(key).toLowerCase() + ')'"
+                  :name="'prompt-' + key"
+                >
+                  <a-textarea
+                    v-model:value="marketplace.prompt"
+                    auto-size
+                    @change="updatePrompt({
                   companyId: company.id,
                   marketplaceKey: key,
                   promptType: 'prompt',
                   newValue: $event.target.value
                 })"
-              />
-            </a-form-item>
-          </a-col>
-        </a-row>
+                  />
+                </a-form-item>
+              </a-col>
+            </a-row>
 
-        <a-row :gutter="24">
-          <a-col :span="24">
-            <a-form-item
-              :label="'Prompt для вопроса (' + convertNameMarketplace(key).toLowerCase() + ')'"
-              :name="'promptQuestion-' + key">
-              <a-textarea
-                v-model:value="marketplace.promptQuestion"
-                auto-size
-                @change="updatePrompt({
+            <a-row :gutter="24">
+              <a-col :span="24">
+                <a-form-item
+                  :label="'Prompt для вопроса (' + convertNameMarketplace(key).toLowerCase() + ')'"
+                  :name="'promptQuestion-' + key">
+                  <a-textarea
+                    v-model:value="marketplace.promptQuestion"
+                    auto-size
+                    @change="updatePrompt({
                   companyId: company.id,
                   marketplaceKey: key,
                   promptType: 'promptQuestion',
                   newValue: $event.target.value
                 })"
-              />
-            </a-form-item>
-          </a-col>
-        </a-row>
-      </div>
+                  />
+                </a-form-item>
+              </a-col>
+            </a-row>
+          </div>
+        </a-collapse-panel>
+      </a-collapse>
     </a-collapse-panel>
   </a-collapse>
 </template>

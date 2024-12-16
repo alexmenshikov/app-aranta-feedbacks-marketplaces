@@ -295,6 +295,36 @@ const isEditing = (id) => {
 
 // Храним информацию о текущей редактируемой строке
 const editingRow = ref({id: null, answer: ''});
+
+function convertNameMarketplace(value) {
+  if (value === "wb") {
+    return "Wilberries";
+  } else if (value === "ozon") {
+    return "Ozon";
+  } else if (value === "ya") {
+    return "Яндекс";
+  }
+}
+
+function getColorTagMarketplace(value) {
+  if (value === "wb") {
+    return "#bc3d96";
+  } else if (value === "ozon") {
+    return "#005bff";
+  } else if (value === "ya") {
+    return "#fa3e2c";
+  }
+}
+
+function getColorTagCompany(value) {
+  if (value === "ARANTA Decor") {
+    return "#2d6a4f";
+  } else if (value === "ARANTA Art Supplies") {
+    return "#4a4e69";
+  } else if (value === "Sunflowers") {
+    return "#7e913b";
+  }
+}
 </script>
 
 <template>
@@ -321,17 +351,14 @@ const editingRow = ref({id: null, answer: ''});
     >
       <template #bodyCell="{ column, record, index }">
         <template v-if="column.key === 'createdDate'">
-<!--          <span v-if="record.createdDate">-->
-<!--            {{ dayjs(record.createdDate).format('DD.MM.YYYY HH:mm') }}-->
-<!--          </span>-->
           <span v-if="record.createdDate" style="display: block; font-weight: bold;">
             {{ dayjs(record.createdDate).format('DD.MM.YYYY') }}
           </span>
           <span v-if="record.createdDate" style="display: block;">
             {{ dayjs(record.createdDate).format('HH:mm') }}
           </span>
-          <a-tag :bordered="false" color="volcano" style="margin: 5px 0;">{{ record.companyName }}</a-tag>
-          <a-tag :bordered="false" color="purple">{{ record.marketplace }}</a-tag>
+          <a-tag :bordered="false" :color="getColorTagCompany(record.companyName)" style="margin: 5px 0;">{{ record.companyName }}</a-tag>
+          <a-tag :bordered="false" :color="getColorTagMarketplace(record.marketplace)">{{ convertNameMarketplace(record.marketplace) }}</a-tag>
         </template>
 
         <template v-if="column.key === 'userName'">
