@@ -18,9 +18,6 @@ import {
   CollapsePanel as ACollapsePanel,
   message,
 } from "ant-design-vue";
-import {
-  ClockCircleOutlined
-} from "@ant-design/icons-vue"
 import ruRu from "ant-design-vue/es/locale/ru_RU";
 import dayjs from "dayjs";
 import ru from "dayjs/locale/ru";
@@ -34,8 +31,22 @@ import CompanySelector from "./components/CompanySelector.vue";
 import CompanyPanel from "./components/CompanyPanel.vue";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { getFeedbacksWb } from "./composible/getFeedbacksWb.js";
+import { getQuestionsWb } from "./composible/getQuestionsWb.js";
 
 const store = useCompanyStore();
+
+let isInitialized = false;
+let wasStarted = false;
+
+const OPENAI_API_KEY = ref("");
+
+// watch(OPENAI_API_KEY, (newValue) => {
+//   localStorage.setItem("selectedOpenaiApiKey", newValue);
+// }, { deep: true });
+
+watch(OPENAI_API_KEY, (newValue) => {
+  localStorage.setItem("selectedOpenaiApiKey", newValue);
+})
 
 onMounted(() => {
   store.loadFromLocalStorage();
@@ -44,27 +55,48 @@ onMounted(() => {
   feedbacksList.value = [];
   questionsList.value = [];
 
-  handleStart();
+  const getOPENAI_API_KEY = localStorage.getItem("selectedOpenaiApiKey");
+  OPENAI_API_KEY.value = getOPENAI_API_KEY || "";
+
+  // if (trackingCompanies.value.length > 0) {
+  //   handleStart();
+  //   wasStarted = true;
+  // }
+
+  isInitialized = true;
 });
 
+// const statusStart = ref(false);
+const trackingCompanies = computed(() => store.trackingCompanies);
+
 function handleStart() {
-  feedbacksGet();
+  console.log("START");
+  // statusStart.value = true;
+
+  feedbacksQuestionsGet();
   // questionsGet();
 
   timerId = setInterval(() => {
-    feedbacksGet();
+    feedbacksQuestionsGet();
     // questionsGet();
   }, 600000); // 600000 миллисекунд = 10 минут
 }
 
 function handleStop() {
+  console.log("STOP");
+  // statusStart.value = false;
+
   clearInterval(timerId); // Остановить таймер
 }
 
-function resetTimer() {
+function handleReset() {
+  console.log("RESET");
+
+  feedbacksQuestionsGet();
+
   clearInterval(timerId); // Останавливаем текущий таймер
   timerId = setInterval(() => {
-    feedbacksGet();
+    feedbacksQuestionsGet();
     // questionsGet();
   }, 600000); // 600000 миллисекунд = 10 минут
 }
@@ -73,10 +105,26 @@ onUnmounted(() => {
   handleStop();
 });
 
+watch(trackingCompanies, (newValue) => {
+  if (!isInitialized) return;
+
+  // Проверяем, был ли уже вызван handleStart
+  if (newValue.length > 0 && !wasStarted) {
+    handleStart();
+    wasStarted = true; // Помечаем, что старт уже был
+  } else if (newValue.length > 0 && wasStarted) {
+    handleReset();
+  } else {
+    handleStop();
+    feedbacksAndQuestions.value = [];
+    wasStarted = false; // Сбрасываем флаг
+  }
+}, { flush: 'post', immediate: true });
+// }, { deep: true, flush: 'post', immediate: true });
+
 let timerId = null;
 
 const loading = ref(false);
-// const feedbacksList = ref({});
 const feedbacksList = ref([]);
 const questionsList = ref([]);
 
@@ -85,48 +133,76 @@ const columns = ref([
     title: 'Дата / компания',
     dataIndex: 'createdDate',
     key: 'createdDate',
-    width: '14%',
+    // width: 157,
+    // customRender: (text) => <div class="ellipsis">{text}</div>,
+    ellipsis: false,
+    width: 157,
+    // width: '14%',
   },
   {
     title: 'Имя',
     dataIndex: 'userName',
     key: 'userName',
-    width: '10%',
+    // width: '8%',
+    // width: 157,
+    // customRender: (text) => <div class="ellipsis">{text}</div>,
+    ellipsis: false,
   },
   {
     title: 'Фотографии',
     dataIndex: 'photoLinks',
     key: 'photoLinks',
-    width: '10%',
+    // width: '10%',
+    // width: 157,
+    // customRender: (text) => <div class="ellipsis">{text}</div>,
+    ellipsis: false,
   },
   {
     title: 'Отзыв / Вопрос',
     dataIndex: 'comment',
     key: 'comment',
-    width: '25%',
+    // width: '25%',
+    // width: 157,
+    // maxWidth: 157,
+    // customRender: (text) => <div class="ellipsis">{text}</div>,
+    ellipsis: false,
   },
   {
     title: 'Оценка',
     dataIndex: 'productValuation',
     key: 'productValuation',
-    width: '8%'
+    // width: '7%'
+    // width: 157,
+    // width: 90,
+    // customRender: (text) => <div class="ellipsis">{text}</div>,
+    ellipsis: false,
   },
   {
     title: 'Ответ',
     dataIndex: 'answer',
     key: 'answer',
-    width: '20%',
+    // width: '24%',
+    width: 230,
+    // maxWidth: 246,
+    // customRender: (text) => <div class="ellipsis">{text}</div>,
+    ellipsis: false,
   },
   {
     title: 'Статус',
     key: 'status',
     dataIndex: 'status',
-    width: '7%',
+    // width: '6%',
+    // width: 157,
+    // customRender: (text) => <div class="ellipsis">{text}</div>,
+    ellipsis: false,
   },
   {
     title: 'Действие',
     key: 'makeAnswer',
-    width: '6%',
+    // width: '6%',
+    // width: 157,
+    // customRender: (text) => <div class="ellipsis">{text}</div>,
+    ellipsis: false,
   },
 ]);
 
@@ -148,6 +224,8 @@ watch([feedbacksList, questionsList], ([newFeedbacks, newQuestions]) => {
       if (existingItem) {
         updateData.value.push(existingItem);
       } else {
+        // console.log("newItem", newItem);
+
         updateData.value.push({
           ...newItem,
           type,
@@ -227,34 +305,35 @@ async function sendMessageToAllUsers(message, feedbackId) {
 }
 
 
-// Загрузка отзывов
-async function feedbacksGet() {
+// Загрузка отзывов и вопросов
+async function feedbacksQuestionsGet() {
   loading.value = true;
-  const loadingFeedbacks = message.loading('Загрузка отзывов', 0);
 
   try {
     const allFeedbacks = [];
+    const allQuestions = [];
 
     for (const company of store.trackingCompanies) {
       if (Object.keys(company.marketplaces).length > 0) {
         for (const marketplace of Object.keys(company.marketplaces)) {
           if (marketplace === 'wb') {
-            // const key = `${company.name.replace(/ /g, "_")}_${marketplace}`;
-            // const feedbacks = await getFeedbacksWb({
-            //   apiToken: company.marketplaces[marketplace].apiToken
-            // });
-            // feedbacksList.value = { ...feedbacksList.value, [key]: feedbacks };
-
             const feedbacks = await getFeedbacksWb({
+              companyId: company.id,
               apiToken: company.marketplaces[marketplace].apiToken,
               companyName: company.name,
               marketplace: marketplace,
+              message: message,
             });
             allFeedbacks.push(...feedbacks);
 
-            // feedbacksList.value[`${company.name.replace(/ /g, "_")}_${marketplace}`] = await getFeedbacksWb({
-            //   apiToken: company.marketplaces[marketplace].apiToken
-            // });
+            const questions = await getQuestionsWb({
+              companyId: company.id,
+              apiToken: company.marketplaces[marketplace].apiToken,
+              companyName: company.name,
+              marketplace: marketplace,
+              message: message,
+            });
+            allQuestions.push(...questions);
           } else if (marketplace === 'ozon') {
 
           }
@@ -263,11 +342,11 @@ async function feedbacksGet() {
     }
 
     feedbacksList.value = allFeedbacks;
+    questionsList.value = allQuestions;
 
-    loadingFeedbacks();
     loading.value = false;
   } catch (error) {
-    loadingFeedbacks();
+
     loading.value = false;
   }
 }
@@ -288,13 +367,33 @@ function getColorProductValuation(record) {
   }
 }
 
+// Храним информацию о текущей редактируемой строке
+const editingRow = ref({id: null, answer: ''});
+
 // Проверяем, редактируется ли строка
 const isEditing = (id) => {
   return editingRow.value.id === id;
 };
 
-// Храним информацию о текущей редактируемой строке
-const editingRow = ref({id: null, answer: ''});
+// Функция для редактирования
+const edit = (record) => {
+  // Инициализируем ответ текущим значением
+  editingRow.value = {id: record.id, answer: record.answer || ''};
+};
+
+// Сохранение изменений
+const save = (id) => {
+  const index = sortedFeedbacksAndQuestions.value.findIndex((item) => item.id === id);
+  if (index !== -1) {
+    sortedFeedbacksAndQuestions.value[index].answer = editingRow.value.answer;
+  }
+  editingRow.value = {id: null, answer: ''};
+};
+
+// Отмена редактирования
+const cancelEdit = () => {
+  editingRow.value = {id: null, answer: ''};
+};
 
 function convertNameMarketplace(value) {
   if (value === "wb") {
@@ -318,11 +417,92 @@ function getColorTagMarketplace(value) {
 
 function getColorTagCompany(value) {
   if (value === "ARANTA Decor") {
-    return "#2d6a4f";
+    return "#17a365";
   } else if (value === "ARANTA Art Supplies") {
-    return "#4a4e69";
+    return "#858fcf";
   } else if (value === "Sunflowers") {
-    return "#7e913b";
+    return "#97be0d";
+  }
+}
+
+const countUnansweredFeedbacks = computed(() => {
+  let count = 0;
+
+  sortedFeedbacksAndQuestions.value.forEach((item) => {
+    if (item.type === "feedback" && !item.status) {
+      count++;
+    }
+  });
+
+  return count;
+});
+
+const countUnansweredQuestions = computed(() => {
+  let count = 0;
+
+  sortedFeedbacksAndQuestions.value.forEach((item) => {
+    if (item.type === "question" && !item.status) {
+      count++;
+    }
+  });
+
+  return count;
+});
+
+async function startGenerateAnwser(id) {
+  const item = sortedFeedbacksAndQuestions.value.find((findItem) => findItem.id === id);
+
+  const findCompany = store.companies.find(company => company.id === item.companyId);
+
+  const prompts = {
+    feedback: findCompany.marketplaces[item.marketplace].prompt,
+    question: findCompany.marketplaces[item.marketplace].promptQuestion,
+  }
+
+  item.answer = await generateAnwser({
+    userName: item.userName,
+    comment: item.comment,
+    productName: item.productName,
+    productValuation: item.productValuation,
+    image: item.photoLinks ? true : false,
+    type: item.type,
+    prompts: prompts,
+  });
+}
+
+async function generateAnwser(options) {
+  const { userName, comment, productName, productValuation, image, type, prompts } = options;
+
+  const client = axios.create({
+    headers: {
+      Authorization: `Bearer ${OPENAI_API_KEY.value}`,
+    }
+  });
+
+  const text = type === "feedback"
+    ? `Информация о его отзыве: ${userName && `Имя покупателя: ${userName}.`} ${productName && ` Купленный товар: ${productName}.`} ${productValuation && ` Оценка: ${productValuation}.`} ${comment.text && ` Отзыв: ${comment.text}.`} ${comment.pros && ` Достоинства товара по мнению покупателя: ${comment.pros}.`} ${comment.cons && ` Недостатки товара по мнению покупателя: ${comment.cons}.`} ${image ? ' А так же покупатель добавил фотографию(и) к отзыву.' : ''}`
+    : `Вопрос от покупателя: ${comment.text} по товару ${productName}`;
+
+  const params = {
+    model: "gpt-4o",
+    messages: [
+      {
+        role: "user",
+        content: `${prompts[type]} ${text}`
+      }
+    ],
+    max_tokens: 1000
+  };
+
+  message.loading('Генерация ответа');
+
+  try {
+    const response = await client.post("https://api.openai.com/v1/chat/completions", params);
+
+    return response.data.choices[0].message.content; // Возвращаем ответ
+  } catch (error) {
+    console.error("Ошибка при запросе к OpenAI:", error);
+    return "Не удалось получить ответ от OpenAI"; // Возвращаем сообщение об ошибке
   }
 }
 </script>
@@ -331,23 +511,30 @@ function getColorTagCompany(value) {
   <a-config-provider :locale="ruRu">
     <a-form layout="vertical">
       <company-selector />
-      <company-panel />
+      <company-panel
+        :openApiKey="OPENAI_API_KEY"
+        @edit-open-api-key="OPENAI_API_KEY = $event"
+      />
     </a-form>
 
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; margin-top: 20px;">
       <div style="display: flex; align-items: flex-end;">
         <span style="margin-right: 5px;">Количество неотвеченных отзывов</span>
-        <a-badge :count="0" show-zero/>
+        <a-badge :count="countUnansweredFeedbacks" show-zero/>
         <span style="margin: 0 5px;">и вопросов</span>
-        <a-badge :count="0" show-zero/>
+        <a-badge :count="countUnansweredQuestions" show-zero/>
       </div>
     </div>
 
     <a-table
+      class="ant-table-striped"
       :columns="columns"
       :data-source="sortedFeedbacksAndQuestions"
       :loading="loading"
+      :row-class-name="(record, index) => (index % 2 === 1 ? 'table-striped' : null)"
       row-key="id"
+      bordered
+      :scroll="{ x: 1259 }"
     >
       <template #bodyCell="{ column, record, index }">
         <template v-if="column.key === 'createdDate'">
@@ -357,8 +544,10 @@ function getColorTagCompany(value) {
           <span v-if="record.createdDate" style="display: block;">
             {{ dayjs(record.createdDate).format('HH:mm') }}
           </span>
-          <a-tag :bordered="false" :color="getColorTagCompany(record.companyName)" style="margin: 5px 0;">{{ record.companyName }}</a-tag>
-          <a-tag :bordered="false" :color="getColorTagMarketplace(record.marketplace)">{{ convertNameMarketplace(record.marketplace) }}</a-tag>
+          <div style="display: flex; flex-direction: column; align-items: flex-start;">
+            <a-tag :bordered="false" :color="getColorTagCompany(record.companyName)" style="margin: 5px 0;">{{ record.companyName }}</a-tag>
+            <a-tag :bordered="false" :color="getColorTagMarketplace(record.marketplace)">{{ convertNameMarketplace(record.marketplace) }}</a-tag>
+          </div>
         </template>
 
         <template v-if="column.key === 'userName'">
@@ -436,7 +625,7 @@ function getColorTagCompany(value) {
               v-model:value="editingRow.answer"
               auto-size
             />
-            <a-space style="margin-top: 10px;">
+            <a-space style="display: flex; flex-wrap: wrap; margin-top: 10px;">
               <a-button @click="save(record.id)" type="primary">
                 Сохранить
               </a-button>
@@ -485,11 +674,29 @@ function getColorTagCompany(value) {
   color: #1677ff;
 }
 
+.ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ant-table {
+  table-layout: fixed !important;
+}
+
 .ant-collapse {
   margin-bottom: 20px;
 }
 
+p {
+  word-break: break-word;
+}
+
 .ant-collapse:last-child {
   margin-bottom: 0;
+}
+
+.ant-table-striped :deep(.table-striped) td {
+  background-color: #fafafa;
 }
 </style>

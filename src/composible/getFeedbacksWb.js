@@ -1,7 +1,8 @@
 import axios from "axios";
 
-export async function getFeedbacksWb({ apiToken, companyName, marketplace }) {
+export async function getFeedbacksWb({ companyId, apiToken, companyName, marketplace, message }) {
   let dataList = [];
+  const loadingFeedbacks = message.loading('Загрузка отзывов', 0);
 
   try {
     const response = await axios.get("https://feedbacks-api.wildberries.ru/api/v1/feedbacks", {
@@ -18,6 +19,7 @@ export async function getFeedbacksWb({ apiToken, companyName, marketplace }) {
 
     if (response.data.data.feedbacks.length > 0) {
       dataList = response.data.data.feedbacks.map((feedback) => ({
+        companyId: companyId,
         id: feedback.id,
         companyName: companyName,
         marketplace: marketplace,
@@ -36,10 +38,11 @@ export async function getFeedbacksWb({ apiToken, companyName, marketplace }) {
       }));
     }
 
-    console.log("dataList", dataList);
+    loadingFeedbacks();
     return dataList;
   } catch (error) {
     console.error("getFeedbacksWb", error);
+    loadingFeedbacks();
     return dataList;
   }
 }

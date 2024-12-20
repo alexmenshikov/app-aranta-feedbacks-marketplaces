@@ -1,7 +1,5 @@
 <script setup>
-// import { computed } from 'vue';
 import { useCompanyStore } from "../stores/companyStore.js";
-
 import { computed } from "vue";
 import {
   Col as ACol,
@@ -11,6 +9,15 @@ import {
   Collapse as ACollapse,
   CollapsePanel as ACollapsePanel,
 } from "ant-design-vue";
+
+const props = defineProps({
+  openApiKey: {
+    type: String,
+    required: true,
+  }
+});
+
+const emit = defineEmits(["editOpenApiKey"]);
 
 const store = useCompanyStore();
 
@@ -30,12 +37,23 @@ function updatePrompt(companyId, marketplaceKey, type, value) {
 }
 </script>
 
+<!--@change="emit('openApiKey', $event.target.value)"-->
 <template>
-<!--  <h3 v-if="trackingCompanies.length > 0">Prompts</h3>-->
-
   <a-collapse collapsible="header">
     <a-collapse-panel header="Prompts и ключ gpt">
-      <a-collapse collapsible="header" v-for="company in trackingCompanies" :key="company.id">
+      <a-row :gutter="24">
+        <a-col :span="24">
+          <a-form-item label="OPENAI_API_KEY" name="OPENAI_API_KEY">
+            <a-textarea
+              :value="props.openApiKey"
+              @change="emit('editOpenApiKey', $event.target.value)"
+              auto-size
+            />
+          </a-form-item>
+        </a-col>
+      </a-row>
+
+      <a-collapse class="bc" collapsible="header" v-for="company in trackingCompanies" :key="company.id">
         <a-collapse-panel :header="company.name" class="collapse__panel">
           <div v-for="(marketplace, key) in company.marketplaces" :key="key">
             <h3>{{ convertNameMarketplace(key) }}</h3>
@@ -49,11 +67,11 @@ function updatePrompt(companyId, marketplaceKey, type, value) {
                     v-model:value="marketplace.prompt"
                     auto-size
                     @change="updatePrompt({
-                  companyId: company.id,
-                  marketplaceKey: key,
-                  promptType: 'prompt',
-                  newValue: $event.target.value
-                })"
+                      companyId: company.id,
+                      marketplaceKey: key,
+                      promptType: 'prompt',
+                      newValue: $event.target.value
+                    })"
                   />
                 </a-form-item>
               </a-col>
@@ -68,11 +86,11 @@ function updatePrompt(companyId, marketplaceKey, type, value) {
                     v-model:value="marketplace.promptQuestion"
                     auto-size
                     @change="updatePrompt({
-                  companyId: company.id,
-                  marketplaceKey: key,
-                  promptType: 'promptQuestion',
-                  newValue: $event.target.value
-                })"
+                      companyId: company.id,
+                      marketplaceKey: key,
+                      promptType: 'promptQuestion',
+                      newValue: $event.target.value
+                    })"
                   />
                 </a-form-item>
               </a-col>
