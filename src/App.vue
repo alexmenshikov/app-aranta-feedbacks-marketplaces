@@ -89,10 +89,12 @@ function handleStop() {
   clearInterval(timerId); // Остановить таймер
 }
 
-function handleReset() {
+function handleReset( { onlyTimer = false } ) {
   console.log("RESET");
 
-  feedbacksQuestionsGet();
+  if (!onlyTimer) {
+    feedbacksQuestionsGet();
+  }
 
   clearInterval(timerId); // Останавливаем текущий таймер
   timerId = setInterval(() => {
@@ -279,31 +281,30 @@ const telegramChatIds = [
 const messagesUnansweredFeedback = ref([]);
 
 // Функция для отправки сообщения всем пользователям
-async function sendMessageToAllUsers(message, feedbackId) {
-  if (telegramChatIds.length === 0) {
-    console.log('Нет новых пользователей.');
-    return;
-  }
-
-  for (const chatId of telegramChatIds) {
-    try {
-      const response = await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, {
-        chat_id: chatId.id,
-        text: message,
-        parse_mode: 'Markdown'
-      });
-
-      messagesUnansweredFeedback.value.push({
-        messageId: response.data.result.message_id,
-        feedbackId: feedbackId,
-        company: "company",
-      });
-    } catch (error) {
-      console.error(`Ошибка при отправке сообщения пользователю с chat_id: ${chatId.id}`, error);
-    }
-  }
-}
-
+// async function sendMessageToAllUsers(message, feedbackId) {
+//   if (telegramChatIds.length === 0) {
+//     console.log('Нет новых пользователей.');
+//     return;
+//   }
+//
+//   for (const chatId of telegramChatIds) {
+//     try {
+//       const response = await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, {
+//         chat_id: chatId.id,
+//         text: message,
+//         parse_mode: 'Markdown'
+//       });
+//
+//       messagesUnansweredFeedback.value.push({
+//         messageId: response.data.result.message_id,
+//         feedbackId: feedbackId,
+//         company: "company",
+//       });
+//     } catch (error) {
+//       console.error(`Ошибка при отправке сообщения пользователю с chat_id: ${chatId.id}`, error);
+//     }
+//   }
+// }
 
 // Загрузка отзывов и вопросов
 async function feedbacksQuestionsGet() {
@@ -470,6 +471,7 @@ async function startGenerateAnwser(id) {
   });
 }
 
+// генерация ответа на вопрос и отзыв
 async function generateAnwser(options) {
   const { userName, comment, productName, productValuation, image, type, prompts } = options;
 
@@ -504,6 +506,75 @@ async function generateAnwser(options) {
     console.error("Ошибка при запросе к OpenAI:", error);
     return "Не удалось получить ответ от OpenAI"; // Возвращаем сообщение об ошибке
   }
+}
+
+async function startMakeAnswer(id) {
+  const item = sortedFeedbacksAndQuestions.value.find((findItem) => findItem.id === id);
+
+  if (!item) return;
+
+  const findCompany = store.companies.find(company => company.id === item.companyId);
+
+  // item.id
+  // item.type
+  // item.marketplace
+
+  if (item.marketplace === "wb") {
+    makeAnswerWb({
+      apiToken: findCompany.marketplaces[item.marketplace].apiToken,
+      item: item,
+    });
+  } else if (item.marketplace === "ozon") {
+
+  } else if (item.marketplace === "ya") {
+
+  }
+}
+
+// Отправка ответа на отзыв и вопрос
+function makeAnswerWb(options) {
+  const { apiToken, item } = options;
+
+  const paths = {
+    feedback: "https://feedbacks-api.wildberries.ru/api/v1/feedbacks/answer",
+    question: "https://feedbacks-api.wildberries.ru/api/v1/questions",
+  };
+
+  const data = {
+    feedback: {
+      id: item.id,
+      text: item.answer
+    },
+    question: {
+      id: item.id,
+      answer: {
+        text: item.answer
+      },
+      state: "wbRu"
+    },
+  };
+
+  const method = item.type === "feedback" ? "post" : "patch";
+  const path = paths[item.type];
+  const payload = data[item.type];
+
+  handleReset({
+    onlyTimer: true
+  });
+
+  axios[method](path, payload, {
+    headers: {
+      Authorization: apiToken
+    }
+  })
+    .then(() => {
+      item.status = true;
+      message.success("Ответ успешно отправлен!");
+    })
+    .catch((error) => {
+      console.error(error);
+      message.error("Ошибка при отправке ответа!");
+    });
 }
 </script>
 
@@ -653,7 +724,7 @@ async function generateAnwser(options) {
           <div style="display: flex; flex-direction: column">
             <a @click="startGenerateAnwser(record.id)" style="margin-bottom: 10px">Сгенерировать</a>
 
-            <a @click="makeAnswer(record.id, record.type)">Ответить</a>
+            <a @click="startMakeAnswer(record.id)">Ответить</a>
           </div>
         </template>
       </template>
