@@ -89,7 +89,7 @@ function handleStop() {
   clearInterval(timerId); // Остановить таймер
 }
 
-function handleReset( { onlyTimer = false } ) {
+function handleReset({ onlyTimer }) {
   console.log("RESET");
 
   if (!onlyTimer) {
@@ -115,7 +115,9 @@ watch(trackingCompanies, (newValue) => {
     handleStart();
     wasStarted = true; // Помечаем, что старт уже был
   } else if (newValue.length > 0 && wasStarted) {
-    handleReset();
+    handleReset({
+      onlyTimer: false,
+    });
   } else {
     handleStop();
     feedbacksAndQuestions.value = [];
