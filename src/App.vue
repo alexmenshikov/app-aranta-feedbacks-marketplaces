@@ -32,6 +32,7 @@ import CompanyPanel from "./components/CompanyPanel.vue";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { getFeedbacksWb } from "./composible/getFeedbacksWb.js";
 import { getQuestionsWb } from "./composible/getQuestionsWb.js";
+import { getFeedbacksYa } from "./composible/getFeedbacksYa.js";
 
 const store = useCompanyStore();
 
@@ -312,22 +313,28 @@ const messagesUnansweredFeedback = ref([]);
 async function feedbacksQuestionsGet() {
   loading.value = true;
 
+  console.log("Загрузка отзывов");
+
   try {
     const allFeedbacks = [];
     const allQuestions = [];
 
+    console.log("Загрузка отзывов - начинаем");
+
     for (const company of store.trackingCompanies) {
       if (Object.keys(company.marketplaces).length > 0) {
         for (const marketplace of Object.keys(company.marketplaces)) {
+          console.log("Загрузка отзывов", marketplace);
+
           if (marketplace === 'wb') {
-            const feedbacks = await getFeedbacksWb({
+            const feedbacksWb = await getFeedbacksWb({
               companyId: company.id,
               apiToken: company.marketplaces[marketplace].apiToken,
               companyName: company.name,
               marketplace: marketplace,
               message: message,
             });
-            allFeedbacks.push(...feedbacks);
+            allFeedbacks.push(...feedbacksWb);
 
             const questions = await getQuestionsWb({
               companyId: company.id,
@@ -337,8 +344,13 @@ async function feedbacksQuestionsGet() {
               message: message,
             });
             allQuestions.push(...questions);
-          } else if (marketplace === 'ozon') {
-
+          } else if (marketplace === 'yandex') {
+            const feedbacksYa = await getFeedbacksYa({
+              businessId: company.marketplaces[marketplace].businessId,
+              apiToken: company.marketplaces[marketplace].apiToken,
+              message: message,
+            })
+            allFeedbacks.push(...feedbacksYa);
           }
         }
       }
@@ -403,7 +415,7 @@ function convertNameMarketplace(value) {
     return "Wilberries";
   } else if (value === "ozon") {
     return "Ozon";
-  } else if (value === "ya") {
+  } else if (value === "yandex") {
     return "Яндекс";
   }
 }
@@ -413,7 +425,7 @@ function getColorTagMarketplace(value) {
     return "#bc3d96";
   } else if (value === "ozon") {
     return "#005bff";
-  } else if (value === "ya") {
+  } else if (value === "yandex") {
     return "#fa3e2c";
   }
 }
@@ -528,7 +540,7 @@ async function startMakeAnswer(id) {
     });
   } else if (item.marketplace === "ozon") {
 
-  } else if (item.marketplace === "ya") {
+  } else if (item.marketplace === "yandex") {
 
   }
 }
