@@ -32,6 +32,8 @@ import CompanyPanel from "./components/CompanyPanel.vue";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { getFeedbacksWb } from "./composible/getFeedbacksWb.js";
 import { getQuestionsWb } from "./composible/getQuestionsWb.js";
+import { getQuestionsOzon } from "./composible/getQuestionsOzon.js";
+import { getFeedbacksOzon } from "./composible/getFeedbacksOzon.js";
 import { getFeedbacksYa } from "./composible/getFeedbacksYa.js";
 
 const store = useCompanyStore();
@@ -313,18 +315,18 @@ const messagesUnansweredFeedback = ref([]);
 async function feedbacksQuestionsGet() {
   loading.value = true;
 
-  console.log("Загрузка отзывов");
+  console.log("Загрузка отзывов и вопросов");
 
   try {
     const allFeedbacks = [];
     const allQuestions = [];
 
-    console.log("Загрузка отзывов - начинаем");
+    console.log("Загрузка отзывов и вопросов - начинаем");
 
     for (const company of store.trackingCompanies) {
       if (Object.keys(company.marketplaces).length > 0) {
         for (const marketplace of Object.keys(company.marketplaces)) {
-          console.log("Загрузка отзывов", marketplace);
+          console.log("Загрузка отзывов и вопросов", marketplace);
 
           if (marketplace === 'wb') {
             const feedbacksWb = await getFeedbacksWb({
@@ -336,14 +338,34 @@ async function feedbacksQuestionsGet() {
             });
             allFeedbacks.push(...feedbacksWb);
 
-            const questions = await getQuestionsWb({
+            const questionsWb = await getQuestionsWb({
               companyId: company.id,
               apiToken: company.marketplaces[marketplace].apiToken,
               companyName: company.name,
               marketplace: marketplace,
               message: message,
             });
-            allQuestions.push(...questions);
+            allQuestions.push(...questionsWb);
+          } else if (marketplace === 'ozon') {
+            const feedbacksOzon = await getFeedbacksOzon({
+              companyId: company.id,
+              apiToken: company.marketplaces[marketplace].apiToken,
+              clientId: company.marketplaces[marketplace].clientId,
+              companyName: company.name,
+              marketplace: marketplace,
+              message: message,
+            });
+            allFeedbacks.push(...feedbacksOzon);
+
+            const questionsOzon = await getQuestionsOzon({
+              companyId: company.id,
+              apiToken: company.marketplaces[marketplace].apiToken,
+              clientId: company.marketplaces[marketplace].clientId,
+              companyName: company.name,
+              marketplace: marketplace,
+              message: message,
+            });
+            allQuestions.push(...questionsOzon);
           } else if (marketplace === 'yandex') {
             const feedbacksYa = await getFeedbacksYa({
               businessId: company.marketplaces[marketplace].businessId,
@@ -529,17 +551,17 @@ async function startMakeAnswer(id) {
 
   const findCompany = store.companies.find(company => company.id === item.companyId);
 
-  // item.id
-  // item.type
-  // item.marketplace
-
   if (item.marketplace === "wb") {
     makeAnswerWb({
       apiToken: findCompany.marketplaces[item.marketplace].apiToken,
       item: item,
     });
   } else if (item.marketplace === "ozon") {
+    if (item.type === "feedback") {
+      mareAnswerFeedbackOzon({});
+    } else if (item.type === "question") {
 
+    }
   } else if (item.marketplace === "yandex") {
 
   }

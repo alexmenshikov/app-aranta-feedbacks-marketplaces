@@ -7,14 +7,29 @@ export async function getFeedbacksYa({ businessId, apiToken, companyName, market
   console.log('Отправка запроса', businessId);
 
   try {
-    const response = await axios.get(`https://api.partner.market.yandex.ru/businesses/${businessId}/goods-feedback`, {
-      params: {
-        limit: 20
+    // const response = await axios.get(`https://api.partner.market.yandex.ru/businesses/${businessId}/goods-feedback`, {
+    //   params: {
+    //     limit: 20
+    //   },
+    //   headers: {
+    //     'Api-Key': 'ACMA:Bqk1qcBY7IBnmLQvQ8LrzWrJKx6Vz5VvVohLWxyZ:15be0b73'
+    //   }
+    // });
+
+    const response = await axios.post(
+      `https://api.partner.market.yandex.ru/businesses/${businessId}/goods-feedback`,
+      {
+        params: {
+          limit: 20
+        },
       },
-      headers: {
-        Authorization: `Api-Key ${apiToken}`
+      {
+        headers: {
+          'Api-Key': apiToken,
+          'Content-Type': 'application/json'
+        }
       }
-    });
+    );
 
     console.log("response", response);
     // if (response.data.data.feedbacks.length > 0) {
