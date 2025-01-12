@@ -1,14 +1,16 @@
 import axios from "axios";
 
-export async function mareAnswerFeedbackOzon({ apiToken, clientId, item, message }) {
+export async function makeAnswerFeedbackOzon({ apiToken, clientId, item, message }) {
   try {
+    console.log(item);
+
     await axios.post(
       "https://api-seller.ozon.ru/v1/review/comment/create",
       {
         mark_review_as_processed: true,
         parent_comment_id: null,
         review_id: item.id,
-        text: item.text
+        text: item.answer
       },
       {
         headers: {

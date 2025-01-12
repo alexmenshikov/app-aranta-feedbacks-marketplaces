@@ -29,12 +29,16 @@ dayjs.extend(utc);
 import { useCompanyStore } from "./stores/companyStore.js";
 import CompanySelector from "./components/CompanySelector.vue";
 import CompanyPanel from "./components/CompanyPanel.vue";
+import ProductValuation from "./components/ProductValuation.vue";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { getFeedbacksWb } from "./composible/getFeedbacksWb.js";
 import { getQuestionsWb } from "./composible/getQuestionsWb.js";
+
 import { getQuestionsOzon } from "./composible/getQuestionsOzon.js";
 import { getFeedbacksOzon } from "./composible/getFeedbacksOzon.js";
 import { getProductOzon } from "./composible/getProductOzon.js";
+import { makeAnswerFeedbackOzon } from "./composible/makeAnswerFeedbackOzon.js";
+
 import { getFeedbacksYa } from "./composible/getFeedbacksYa.js";
 
 const store = useCompanyStore();
@@ -43,10 +47,6 @@ let isInitialized = false;
 let wasStarted = false;
 
 const OPENAI_API_KEY = ref("");
-
-// watch(OPENAI_API_KEY, (newValue) => {
-//   localStorage.setItem("selectedOpenaiApiKey", newValue);
-// }, { deep: true });
 
 watch(OPENAI_API_KEY, (newValue) => {
   localStorage.setItem("selectedOpenaiApiKey", newValue);
@@ -62,39 +62,28 @@ onMounted(() => {
   const getOPENAI_API_KEY = localStorage.getItem("selectedOpenaiApiKey");
   OPENAI_API_KEY.value = getOPENAI_API_KEY || "";
 
-  // if (trackingCompanies.value.length > 0) {
-  //   handleStart();
-  //   wasStarted = true;
-  // }
-
   isInitialized = true;
 });
 
-// const statusStart = ref(false);
 const trackingCompanies = computed(() => store.trackingCompanies);
 
 function handleStart() {
-  console.log("START");
-  // statusStart.value = true;
-
+  // console.log("START");
   feedbacksQuestionsGet();
   // questionsGet();
 
   timerId = setInterval(() => {
     feedbacksQuestionsGet();
-    // questionsGet();
   }, 600000); // 600000 миллисекунд = 10 минут
 }
 
 function handleStop() {
-  console.log("STOP");
-  // statusStart.value = false;
-
+  // console.log("STOP");
   clearInterval(timerId); // Остановить таймер
 }
 
 function handleReset({ onlyTimer }) {
-  console.log("RESET");
+  // console.log("RESET");
 
   if (!onlyTimer) {
     feedbacksQuestionsGet();
@@ -103,7 +92,6 @@ function handleReset({ onlyTimer }) {
   clearInterval(timerId); // Останавливаем текущий таймер
   timerId = setInterval(() => {
     feedbacksQuestionsGet();
-    // questionsGet();
   }, 600000); // 600000 миллисекунд = 10 минут
 }
 
@@ -128,7 +116,6 @@ watch(trackingCompanies, (newValue) => {
     wasStarted = false; // Сбрасываем флаг
   }
 }, { flush: 'post', immediate: true });
-// }, { deep: true, flush: 'post', immediate: true });
 
 let timerId = null;
 
@@ -141,38 +128,25 @@ const columns = ref([
     title: 'Дата / компания',
     dataIndex: 'createdDate',
     key: 'createdDate',
-    // width: 157,
-    // customRender: (text) => <div class="ellipsis">{text}</div>,
     ellipsis: false,
     width: 157,
-    // width: '14%',
   },
   {
     title: 'Имя',
     dataIndex: 'userName',
     key: 'userName',
-    // width: '8%',
-    // width: 157,
-    // customRender: (text) => <div class="ellipsis">{text}</div>,
     ellipsis: false,
   },
   {
     title: 'Фотографии',
     dataIndex: 'photoLinks',
     key: 'photoLinks',
-    // width: '10%',
-    // width: 157,
-    // customRender: (text) => <div class="ellipsis">{text}</div>,
     ellipsis: false,
   },
   {
     title: 'Отзыв / Вопрос',
     dataIndex: 'comment',
     key: 'comment',
-    // width: '25%',
-    // width: 157,
-    // maxWidth: 157,
-    // customRender: (text) => <div class="ellipsis">{text}</div>,
     width: 230,
     ellipsis: false,
   },
@@ -180,10 +154,6 @@ const columns = ref([
     title: 'Оценка',
     dataIndex: 'productValuation',
     key: 'productValuation',
-    // width: '7%'
-    // width: 157,
-    // width: 90,
-    // customRender: (text) => <div class="ellipsis">{text}</div>,
     width: 120,
     ellipsis: false,
   },
@@ -191,27 +161,18 @@ const columns = ref([
     title: 'Ответ',
     dataIndex: 'answer',
     key: 'answer',
-    // width: '24%',
     width: 230,
-    // maxWidth: 246,
-    // customRender: (text) => <div class="ellipsis">{text}</div>,
     ellipsis: false,
   },
   {
     title: 'Статус',
     key: 'status',
     dataIndex: 'status',
-    // width: '6%',
-    // width: 157,
-    // customRender: (text) => <div class="ellipsis">{text}</div>,
     ellipsis: false,
   },
   {
     title: 'Действие',
     key: 'makeAnswer',
-    // width: '6%',
-    // width: 157,
-    // customRender: (text) => <div class="ellipsis">{text}</div>,
     ellipsis: false,
   },
 ]);
@@ -234,8 +195,6 @@ watch([feedbacksList, questionsList], ([newFeedbacks, newQuestions]) => {
       if (existingItem) {
         updateData.value.push(existingItem);
       } else {
-        // console.log("newItem", newItem);
-
         updateData.value.push({
           ...newItem,
           type,
@@ -269,68 +228,17 @@ watch([feedbacksList, questionsList], ([newFeedbacks, newQuestions]) => {
   feedbacksAndQuestions.value = updateData.value;
 });
 
-function getScoreWithSymbol(value) {
-  if (value === 5) return `${value} 💚`;
-  else if (value === 4) return `${value} 💛`;
-  else return `${value} 💔`;
-}
-
-const telegramChatIds = [
-  // {
-  //   name: "Александр",
-  //   id: 514186798,
-  // },
-  // {
-  //   name: "Артём",
-  //   id: 428444661,
-  // }
-];
-
-const messagesUnansweredFeedback = ref([]);
-
-// Функция для отправки сообщения всем пользователям
-// async function sendMessageToAllUsers(message, feedbackId) {
-//   if (telegramChatIds.length === 0) {
-//     console.log('Нет новых пользователей.');
-//     return;
-//   }
-//
-//   for (const chatId of telegramChatIds) {
-//     try {
-//       const response = await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, {
-//         chat_id: chatId.id,
-//         text: message,
-//         parse_mode: 'Markdown'
-//       });
-//
-//       messagesUnansweredFeedback.value.push({
-//         messageId: response.data.result.message_id,
-//         feedbackId: feedbackId,
-//         company: "company",
-//       });
-//     } catch (error) {
-//       console.error(`Ошибка при отправке сообщения пользователю с chat_id: ${chatId.id}`, error);
-//     }
-//   }
-// }
-
 // Загрузка отзывов и вопросов
 async function feedbacksQuestionsGet() {
   loading.value = true;
-
-  console.log("Загрузка отзывов и вопросов");
 
   try {
     const allFeedbacks = [];
     const allQuestions = [];
 
-    console.log("Загрузка отзывов и вопросов - начинаем");
-
     for (const company of store.trackingCompanies) {
       if (Object.keys(company.marketplaces).length > 0) {
         for (const marketplace of Object.keys(company.marketplaces)) {
-          console.log("Загрузка отзывов и вопросов", marketplace);
-
           if (marketplace === 'wb') {
             const feedbacksWb = await getFeedbacksWb({
               companyId: company.id,
@@ -409,18 +317,6 @@ async function feedbacksQuestionsGet() {
 
 function isValidArray(arr) {
   return arr !== null && Array.isArray(arr) && arr.length > 0;
-}
-
-function getColorProductValuation(record) {
-  if (record.productValuation === null) {
-    return "default";
-  } else if (record.productValuation === 5) {
-    return "#87d068";
-  } else if (record.productValuation === 4) {
-    return "gold";
-  } else if (record.productValuation <= 3) {
-    return "red";
-  }
 }
 
 // Храним информацию о текущей редактируемой строке
@@ -577,59 +473,18 @@ async function startMakeAnswer(id) {
     });
   } else if (item.marketplace === "ozon") {
     if (item.type === "feedback") {
-      mareAnswerFeedbackOzon({});
+      makeAnswerFeedbackOzon({
+        apiToken: findCompany.marketplaces[item.marketplace].apiToken,
+        clientId: findCompany.marketplaces[item.marketplace].clientId,
+        item: item,
+        message: message
+      });
     } else if (item.type === "question") {
 
     }
   } else if (item.marketplace === "yandex") {
 
   }
-}
-
-// Отправка ответа на отзыв и вопрос
-function makeAnswerWb(options) {
-  const { apiToken, item } = options;
-
-  const paths = {
-    feedback: "https://feedbacks-api.wildberries.ru/api/v1/feedbacks/answer",
-    question: "https://feedbacks-api.wildberries.ru/api/v1/questions",
-  };
-
-  const data = {
-    feedback: {
-      id: item.id,
-      text: item.answer
-    },
-    question: {
-      id: item.id,
-      answer: {
-        text: item.answer
-      },
-      state: "wbRu"
-    },
-  };
-
-  const method = item.type === "feedback" ? "post" : "patch";
-  const path = paths[item.type];
-  const payload = data[item.type];
-
-  handleReset({
-    onlyTimer: true
-  });
-
-  axios[method](path, payload, {
-    headers: {
-      Authorization: apiToken
-    }
-  })
-    .then(() => {
-      item.status = true;
-      message.success("Ответ успешно отправлен!");
-    })
-    .catch((error) => {
-      console.error(error);
-      message.error("Ошибка при отправке ответа!");
-    });
 }
 </script>
 
@@ -705,28 +560,32 @@ function makeAnswerWb(options) {
           </span>
         </template>
 
-        <template v-if="column.key === 'productValuation'">
-          <a-tag :color="getColorProductValuation(record)">
-            <span v-if="record.productValuation === 5">
-              Отлично ({{ record.productValuation }})
-            </span>
-            <span v-if="record.productValuation === 4">
-              Хорошо ({{ record.productValuation }})
-            </span>
-            <span v-if="record.productValuation === 3">
-              Удовлет. ({{ record.productValuation }})
-            </span>
-            <span v-if="record.productValuation === 2">
-              Плохо ({{ record.productValuation }})
-            </span>
-            <span v-if="record.productValuation === 1">
-              Ужасно ({{ record.productValuation }})
-            </span>
-            <span v-if="!record.productValuation">
-              Отсутствует
-            </span>
-          </a-tag>
-        </template>
+        <product-valuation
+          v-if="column.key === 'productValuation'"
+          :valution="record.productValuation"
+        />
+<!--        <template v-if="column.key === 'productValuation'">-->
+<!--          <a-tag :color="getColorProductValuation(record)">-->
+<!--            <span v-if="record.productValuation === 5">-->
+<!--              Отлично ({{ record.productValuation }})-->
+<!--            </span>-->
+<!--            <span v-if="record.productValuation === 4">-->
+<!--              Хорошо ({{ record.productValuation }})-->
+<!--            </span>-->
+<!--            <span v-if="record.productValuation === 3">-->
+<!--              Удовлет. ({{ record.productValuation }})-->
+<!--            </span>-->
+<!--            <span v-if="record.productValuation === 2">-->
+<!--              Плохо ({{ record.productValuation }})-->
+<!--            </span>-->
+<!--            <span v-if="record.productValuation === 1">-->
+<!--              Ужасно ({{ record.productValuation }})-->
+<!--            </span>-->
+<!--            <span v-if="!record.productValuation">-->
+<!--              Отсутствует-->
+<!--            </span>-->
+<!--          </a-tag>-->
+<!--        </template>-->
 
         <template v-if="column.key === 'comment'">
           <div style="display: flex; flex-direction: column;">
