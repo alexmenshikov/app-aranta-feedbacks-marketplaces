@@ -26,7 +26,7 @@ export async function getFeedbacksWb({ companyId, apiToken, companyName, marketp
         createdDate: feedback.createdDate,
         userName: feedback.userName,
         comment: {
-          supplierArticle: feedback.productDetails.supplierArticle,
+          sku: feedback.productDetails.supplierArticle,
           pros: feedback.pros,
           cons: feedback.cons,
           text: feedback.text,

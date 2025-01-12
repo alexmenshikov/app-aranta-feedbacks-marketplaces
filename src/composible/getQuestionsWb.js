@@ -26,7 +26,7 @@ export async function getQuestionsWb({ companyId, apiToken, companyName, marketp
         createdDate: questions.createdDate,
         userName: "",
         comment: {
-          supplierArticle: questions.productDetails.supplierArticle,
+          sku: questions.productDetails.supplierArticle,
           pros: "",
           cons: "",
           text: questions.text,

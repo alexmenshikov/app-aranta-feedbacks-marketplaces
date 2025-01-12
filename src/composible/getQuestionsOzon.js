@@ -32,7 +32,7 @@ export async function getQuestionsOzon({ companyId, apiToken, clientId, companyN
         createdDate: questions.published_at,
         userName: questions.author_name,
         comment: {
-          supplierArticle: questions.sku,
+          sku: questions.sku,
           pros: "",
           cons: "",
           text: questions.text,

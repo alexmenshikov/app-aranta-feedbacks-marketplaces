@@ -32,7 +32,7 @@ export async function getFeedbacksOzon({ companyId, apiToken, clientId, companyN
         createdDate: feedback.published_at,
         userName: "",
         comment: {
-          supplierArticle: feedback.sku,
+          sku: feedback.sku,
           pros: "",
           cons: "",
           text: feedback.text,

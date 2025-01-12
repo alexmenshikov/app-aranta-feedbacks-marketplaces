@@ -34,6 +34,7 @@ import { getFeedbacksWb } from "./composible/getFeedbacksWb.js";
 import { getQuestionsWb } from "./composible/getQuestionsWb.js";
 import { getQuestionsOzon } from "./composible/getQuestionsOzon.js";
 import { getFeedbacksOzon } from "./composible/getFeedbacksOzon.js";
+import { getProductOzon } from "./composible/getProductOzon.js";
 import { getFeedbacksYa } from "./composible/getFeedbacksYa.js";
 
 const store = useCompanyStore();
@@ -172,6 +173,7 @@ const columns = ref([
     // width: 157,
     // maxWidth: 157,
     // customRender: (text) => <div class="ellipsis">{text}</div>,
+    width: 230,
     ellipsis: false,
   },
   {
@@ -182,6 +184,7 @@ const columns = ref([
     // width: 157,
     // width: 90,
     // customRender: (text) => <div class="ellipsis">{text}</div>,
+    width: 120,
     ellipsis: false,
   },
   {
@@ -355,7 +358,15 @@ async function feedbacksQuestionsGet() {
               marketplace: marketplace,
               message: message,
             });
-            allFeedbacks.push(...feedbacksOzon);
+
+            const feedbacksOzonEnrichedProducts = await getProductOzon({
+              apiToken: company.marketplaces[marketplace].apiToken,
+              clientId: company.marketplaces[marketplace].clientId,
+              items: feedbacksOzon,
+              message: message,
+            });
+
+            allFeedbacks.push(...feedbacksOzonEnrichedProducts);
 
             const questionsOzon = await getQuestionsOzon({
               companyId: company.id,
@@ -365,7 +376,15 @@ async function feedbacksQuestionsGet() {
               marketplace: marketplace,
               message: message,
             });
-            allQuestions.push(...questionsOzon);
+
+            const questionsOzonEnrichedProducts = await getProductOzon({
+              apiToken: company.marketplaces[marketplace].apiToken,
+              clientId: company.marketplaces[marketplace].clientId,
+              items: questionsOzon,
+              message: message,
+            });
+
+            allQuestions.push(...questionsOzonEnrichedProducts);
           } else if (marketplace === 'yandex') {
             const feedbacksYa = await getFeedbacksYa({
               businessId: company.marketplaces[marketplace].businessId,
@@ -711,8 +730,11 @@ function makeAnswerWb(options) {
 
         <template v-if="column.key === 'comment'">
           <div style="display: flex; flex-direction: column;">
-            <p v-if="record.comment.supplierArticle">
-              <b>SKU: </b> {{ record.comment.supplierArticle }}
+            <p v-if="record.comment.sku">
+              <b>SKU: </b> {{ record.comment.sku }}
+            </p>
+            <p v-if="record.productName">
+              <b>Продукт: </b> {{ record.productName }}
             </p>
             <p v-if="record.comment.pros">
               <b>Достоинства: </b> {{ record.comment.pros }}
@@ -721,7 +743,9 @@ function makeAnswerWb(options) {
               <b>Недостатки: </b> {{ record.comment.cons }}
             </p>
             <p v-if="record.comment.text" :class="{ 'question-text': record.type === 'question' }">
-              <b v-if="record.type === 'question'">Вопрос: </b> {{ record.comment.text }}
+              <b v-if="record.type === 'feedback'">Отзыв: </b>
+              <b v-if="record.type === 'question'">Вопрос: </b>
+              {{ record.comment.text }}
             </p>
           </div>
         </template>
@@ -801,6 +825,10 @@ p {
 
 .ant-collapse:last-child {
   margin-bottom: 0;
+}
+
+.ant-tag {
+  margin-inline-end: 0px;
 }
 
 .ant-table-striped :deep(.table-striped) td {
