@@ -38,6 +38,7 @@ import { getQuestionsOzon } from "./composible/getQuestionsOzon.js";
 import { getFeedbacksOzon } from "./composible/getFeedbacksOzon.js";
 import { getProductOzon } from "./composible/getProductOzon.js";
 import { makeAnswerFeedbackOzon } from "./composible/makeAnswerFeedbackOzon.js";
+import { makeAnswerQuestionOzon } from "./composible/makeAnswerQuestionOzon.js";
 
 import { getFeedbacksYa } from "./composible/getFeedbacksYa.js";
 
@@ -70,7 +71,6 @@ const trackingCompanies = computed(() => store.trackingCompanies);
 function handleStart() {
   // console.log("START");
   feedbacksQuestionsGet();
-  // questionsGet();
 
   timerId = setInterval(() => {
     feedbacksQuestionsGet();
@@ -480,7 +480,12 @@ async function startMakeAnswer(id) {
         message: message
       });
     } else if (item.type === "question") {
-
+      makeAnswerQuestionOzon({
+        apiToken: findCompany.marketplaces[item.marketplace].apiToken,
+        clientId: findCompany.marketplaces[item.marketplace].clientId,
+        item: item,
+        message: message
+      });
     }
   } else if (item.marketplace === "yandex") {
 

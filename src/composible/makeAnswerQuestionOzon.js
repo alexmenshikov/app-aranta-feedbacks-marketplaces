@@ -1,13 +1,12 @@
 import axios from "axios";
 
-export async function makeAnswerFeedbackOzon({ apiToken, clientId, item, message }) {
+export async function makeAnswerQuestionOzon({ apiToken, clientId, item, message }) {
   try {
     await axios.post(
       "https://api-seller.ozon.ru/v1/review/comment/create",
       {
-        mark_review_as_processed: true,
-        parent_comment_id: null,
-        review_id: item.id,
+        question_id: item.id,
+        sku: item.comment.skuOzon,
         text: item.answer
       },
       {
@@ -21,7 +20,7 @@ export async function makeAnswerFeedbackOzon({ apiToken, clientId, item, message
     item.status = true;
     message.success("Ответ успешно отправлен!");
   } catch (error) {
-    console.error("mareAnswerFeedbackOzon", error);
+    console.error("mareAnswerQuestionOzon", error);
     message.error("Ошибка при отправке ответа!");
   }
 }

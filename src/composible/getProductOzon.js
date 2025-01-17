@@ -1,7 +1,6 @@
 import axios from "axios";
 
 export async function getProductOzon({ apiToken, clientId, items }) {
-  // const loadingFeedbacks = message.loading('Загрузка продуктов у компании', 0);
   let nameArray = [];
   const skuArray = items.map(item => item.comment.sku.toString());
 
@@ -44,6 +43,7 @@ export async function getProductOzon({ apiToken, clientId, items }) {
       const product = nameArray.find(p => p.sku === item.comment.sku);
       if (product) {
         item.productName = product.productName;
+        item.comment.skuOzon = item.comment.sku;
         item.comment.sku = product.offer_id;
       }
     });

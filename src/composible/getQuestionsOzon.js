@@ -2,9 +2,7 @@ import axios from "axios";
 
 export async function getQuestionsOzon({ companyId, apiToken, clientId, companyName, marketplace, message }) {
   let dataList = [];
-  const loadingQuestions = message.loading('Загрузка вопросов', 0);
-
-  // console.log('ЗАГРУЗКА ПО УСЛОВИЮ OZON');
+  const loadingQuestions = message.loading(`Загрузка вопросов у компании ${companyName}`, 0);
 
   try {
     const response = await axios.post(

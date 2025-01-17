@@ -16,20 +16,59 @@ export async function getFeedbacksYa({ businessId, apiToken, companyName, market
     //   }
     // });
 
+    // const response = await axios.post(
+    //   `https://api.partner.market.yandex.ru/businesses/${businessId}/goods-feedback`,
+    //   {
+    //     params: {
+    //       limit: 20
+    //     },
+    //   },
+    //   {
+    //     headers: {
+    //       'Api-Key': apiToken,
+    //       'Content-Type': 'application/json'
+    //     }
+    //   }
+    // );
+
+    // const response = await axios.post(
+    //   `https://api.partner.market.yandex.ru/businesses/${businessId}/goods-feedback`,
+    //   {
+    //     params: {
+    //       limit: 20
+    //     },
+    //   },
+    //   {
+    //     headers: {
+    //       'Api-Key': apiToken,
+    //       'Content-Type': 'application/json'
+    //     }
+    //   }
+    // );
+
+    const params = {
+      limit: 20,
+      page_token: null
+    };
+
+    const body = {
+      dateTimeFrom: null,
+      dateTimeTo: null,
+      reactionStatus: "ALL",
+      ratingValues: [0],
+      modelIds: [0],
+      paid: false
+    };
+
     const response = await axios.post(
       `https://api.partner.market.yandex.ru/businesses/${businessId}/goods-feedback`,
-      {
-        params: {
-          limit: 20
-        },
-      },
-      {
-        headers: {
-          'Api-Key': apiToken,
-          'Content-Type': 'application/json'
-        }
+      body, {
+      params: params,
+      headers: {
+        'Api-Key': `Bearer ${apiToken}`,
+        'Content-Type': 'application/json'
       }
-    );
+    });
 
     console.log("response", response);
     // if (response.data.data.feedbacks.length > 0) {

@@ -2,7 +2,7 @@ import axios from "axios";
 
 export async function getFeedbacksOzon({ companyId, apiToken, clientId, companyName, marketplace, message }) {
   let dataList = [];
-  const loadingFeedbacks = message.loading('Загрузка отзывов', 0);
+  const loadingFeedbacks = message.loading(`Загрузка отзывов у компании ${companyName}`, 0);
 
   try {
     const response = await axios.post(
